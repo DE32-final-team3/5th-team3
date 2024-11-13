@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - node_exporter
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+
+  mysqld_exporter:
+    image: prom/mysqld-exporter
+    container_name: mysqld_exporter
+    environment:
+      - DATA_SOURCE_NAME=root:1234@(mysql:3306)/  # mariadb 연결
+    ports:
+      - "9104:9104"  # mysqld-exporter 기본 포트
+    volumes:
+      - ./.my.cnf:/etc/my.cnf  # .my.cnf 파일 마운트
+    command:
+      - --config.my-cnf=/etc/my.cnf  # .my.cnf 파일을 mysqld-exporter에 전달
