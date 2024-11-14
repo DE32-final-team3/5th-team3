@@ -3,6 +3,18 @@ import subprocess
 import json
 import time
 
+def run_load_test(c, t):
+    try:
+        result = subprocess.run(
+            [
+                "ab", "-c", f"{c}", "-t", f"{t}", "http://localhost:8949/",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+    except Exception as e:
+        return f"Error running load test: {str(e)}"
 
 def get_blog_containers():
     try:
@@ -89,11 +101,13 @@ cpu_usages, average_cpu_usage = get_average_cpu_usage()
 
 # Check if CPU usages and average CPU usage are valid
 if cpu_usages and average_cpu_usage is not None:
-    # CPU 사용률 표시
-    st.metric(label="Average CPU Usage (%)", value=f"{average_cpu_usage:.2f}")
+    u1, u2 = st.columns([1, 2])
+    with st.container():
+        # CPU 사용률 표시
+        u1.metric(label="Average CPU Usage (%)", value=f"{average_cpu_usage:.2f}")
 
-    st.subheader("Individual Container CPU Usage")
-    st.bar_chart(cpu_usages)
+        u2.subheader("Individual Container CPU Usage")
+        u2.bar_chart(cpu_usages)
 
     # 스케일 아웃 버튼
     with st.container():
@@ -109,6 +123,11 @@ if cpu_usages and average_cpu_usage is not None:
 else:
     st.write("No CPU usage data available or no containers are running.")
 
-# 일정 간격으로 페이지 갱신
-time.sleep(10)
-st.rerun()
+with st.container():
+    p1, p2 = st.columns([1, 1])
+    c = p1.number_input("동시 요청 수", step=10)
+    t = p2.number_input("테스트 시간", step=10)
+
+    if st.button("부하 테스트", use_container_width=True):
+        result = run_load_test(c, t)
+        st.text(result)  # 테스트 결과를 화면에 표시
